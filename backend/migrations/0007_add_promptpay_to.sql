@@ -1,0 +1,2 @@
+ALTER TABLE transactions
+ADD COLUMN IF NOT EXISTS promptpay_to VARCHAR(120);

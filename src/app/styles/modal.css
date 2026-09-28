@@ -1,0 +1,92 @@
+.settings-modal-wrap {
+  position: relative;
+  width: min(900px, 96vw);
+  max-height: calc(100vh - 2rem);
+  margin: auto;
+}
+.settings-modal-wrap .settings-panel {
+  width: 100%;
+  max-height: calc(100vh - 2rem);
+}
+.settings-modal-close {
+  position: absolute;
+  right: 1.2rem;
+  top: 1.2rem;
+  z-index: 2;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted-fg);
+  cursor: pointer;
+}
+.settings-modal-close svg {
+  width: 18px;
+}
+.itr-dashboard {
+  width: min(1360px, 100%);
+  margin: 0 auto;
+}
+.dashboard-refresh {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+.chart-card {
+  margin-top: 0.25rem;
+  padding: 1.25rem;
+}
+.chart-empty {
+  display: grid;
+  height: 390px;
+  place-items: center;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--muted-fg);
+}
+.itr-dashboard [role="tab"] svg {
+  width: 16px;
+  height: 16px;
+}
+.confirm-dialog {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  width: min(430px, 100%);
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 24px 70px rgb(0 0 0/0.4);
+}
+.confirm-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--rose) 14%, transparent);
+  color: var(--rose);
+}
+.confirm-icon svg {
+  width: 20px;
+}
+.confirm-copy h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.confirm-copy p {
+  margin: 0.45rem 0 0;
+  color: var(--muted-fg);
+  font-size: 0.84rem;
+}
+.confirm-actions {
+  grid-column: 1/-1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}

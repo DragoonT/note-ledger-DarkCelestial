@@ -1,0 +1,4 @@
+ALTER TABLE transactions
+ADD COLUMN IF NOT EXISTS paid_to VARCHAR(120),
+ADD COLUMN IF NOT EXISTS transaction_reference VARCHAR(120),
+ADD COLUMN IF NOT EXISTS payment_channel VARCHAR(50);
