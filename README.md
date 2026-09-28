@@ -174,6 +174,19 @@ If either fixed port may already be in use, run the automatic launcher for your 
 bash ./start.sh
 ```
 
+Normal startup reuses the existing images and does not force another build. After changing source
+code, rebuild explicitly:
+
+```powershell
+# Windows PowerShell
+.\start.ps1 -Build
+```
+
+```bash
+# Linux or macOS
+bash ./start.sh --build
+```
+
 This starts:
 - `api` — the Rust backend (runs migrations automatically on start)
 - `web` — the Next.js frontend
@@ -182,6 +195,11 @@ Plain `docker compose up` reports a port-binding error when `3000` or `8080` is 
 automatic scripts use those ports when available; if either is already in use, they
 automatically select the next free port, configure the frontend API URL and CORS origin, and
 print both URLs. Existing containers from this project keep their current published ports.
+
+Each automatic launcher also runs BuildKit cache maintenance with an 8 GB maximum. This prevents
+repeated Rust and Next.js builds from accumulating tens of gigabytes. It never prunes containers,
+volumes, database data, or project files. The plain `docker compose up -d --build` command remains
+available, but it does not apply this project cache-retention step.
 
 Then open the printed Web URL (default: `http://localhost:3000`).
 

@@ -6,6 +6,14 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
+build_args=()
+if [[ "${1:-}" == "--build" ]]; then
+  build_args=(--build)
+elif [[ -n "${1:-}" ]]; then
+  echo "Usage: bash ./start.sh [--build]" >&2
+  exit 1
+fi
+
 port_in_use() {
   local port="$1"
   if command -v lsof >/dev/null 2>&1; then
@@ -55,4 +63,7 @@ export PUBLIC_API_URL="http://localhost:$api_port"
 
 printf 'Web: %s\n' "$PUBLIC_WEB_URL"
 printf 'API: %s\n' "$PUBLIC_API_URL"
-docker compose up -d --build
+docker compose up -d "${build_args[@]}"
+if ! docker buildx prune --force --max-used-space 8GB; then
+  echo "Warning: the website started, but Docker build-cache maintenance failed." >&2
+fi

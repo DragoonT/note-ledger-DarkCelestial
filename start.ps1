@@ -1,3 +1,7 @@
+param(
+    [switch]$Build
+)
+
 $ErrorActionPreference = "Stop"
 
 $dockerCommand = Get-Command docker -ErrorAction SilentlyContinue
@@ -64,7 +68,16 @@ $env:PUBLIC_API_URL = "http://localhost:$apiPort"
 
 Write-Host "Web: $env:PUBLIC_WEB_URL"
 Write-Host "API: $env:PUBLIC_API_URL"
-& $docker compose up -d --build
+$composeArguments = @("compose", "up", "-d")
+if ($Build) {
+    $composeArguments += "--build"
+}
+& $docker @composeArguments
 if ($LASTEXITCODE -ne 0) {
     throw "Docker Compose failed with exit code $LASTEXITCODE."
+}
+
+& $docker buildx prune --force --max-used-space 8GB
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "The website started, but Docker build-cache maintenance failed."
 }

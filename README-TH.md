@@ -172,6 +172,18 @@ docker compose up -d --build
 bash ./start.sh
 ```
 
+การเปิดตามปกติจะใช้ image เดิมและไม่บังคับ build ใหม่ หากแก้ source code ให้สั่ง build อย่างชัดเจน:
+
+```powershell
+# Windows PowerShell
+.\start.ps1 -Build
+```
+
+```bash
+# Linux หรือ macOS
+bash ./start.sh --build
+```
+
 จะเริ่ม:
 - `api` — backend Rust (รัน migrations อัตโนมัติตอนเริ่ม)
 - `web` — frontend Next.js
@@ -179,6 +191,10 @@ bash ./start.sh
 คำสั่ง `docker compose up` จะแจ้งข้อผิดพลาดหากพอร์ต `3000` หรือ `8080` ถูกใช้งานอยู่ ส่วนสคริปต์
 จะใช้พอร์ตดังกล่าวถ้าว่าง และหากพอร์ตใดถูกใช้งานอยู่ ระบบจะเลือกพอร์ตว่างถัดไป
 พร้อมตั้งค่า URL ของ API และ CORS ให้ตรงกัน แล้วแสดง URL ทั้งสองบนหน้าจอ
+
+launcher ทั้งสองระบบจะดูแล BuildKit cache ให้มีขนาดสูงสุด 8 GB เพื่อไม่ให้การ build Rust และ
+Next.js สะสมพื้นที่หลายสิบ GB โดยจะไม่ลบ container, volume, ข้อมูลฐานข้อมูล หรือไฟล์โปรเจกต์
+ส่วนคำสั่ง `docker compose up -d --build` แบบเดิมยังใช้ได้ แต่จะไม่เรียก retention ของโปรเจกต์นี้
 
 จากนั้นเปิด URL ของ Web ที่สคริปต์แสดง (ค่าเริ่มต้น `http://localhost:3000`)
 
