@@ -17,6 +17,8 @@ export function ThemedSelect<T extends string>({
   disabled = false,
   placeholder = "Select…",
   clearable = false,
+  onCreate,
+  createLabel = (name) => `Use "${name}"`,
 }: {
   value: T | "";
   options: { value: T; label: string; disabled?: boolean }[];
@@ -24,6 +26,8 @@ export function ThemedSelect<T extends string>({
   disabled?: boolean;
   placeholder?: string;
   clearable?: boolean;
+  onCreate?: (name: string) => void;
+  createLabel?: (name: string) => string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -32,6 +36,13 @@ export function ThemedSelect<T extends string>({
   const menuRef = useRef<HTMLDivElement>(null);
   const selected = options.find((option) => option.value === value);
   const normalized = query.trim().toLowerCase();
+  const canCreate = Boolean(onCreate && normalized && !options.some(option => option.label.trim().toLowerCase() === normalized));
+  function create() {
+    if (!canCreate) return;
+    onCreate?.(query.trim());
+    setOpen(false);
+    setQuery("");
+  }
   const filtered = normalized
     ? options.filter((option) =>
         option.label.toLowerCase().includes(normalized),
@@ -97,6 +108,7 @@ export function ThemedSelect<T extends string>({
       ? createPortal(
           <div ref={menuRef} style={menuStyle} className="themed-select-menu">
             <div className="themed-select-options">
+              {canCreate ? <button type="button" className="themed-select-option" onMouseDown={event => event.preventDefault()} onClick={create}><span>{createLabel(query.trim())}</span></button> : null}
               {filtered.length ? (
                 filtered.map((option) => (
                   <button
@@ -111,7 +123,7 @@ export function ThemedSelect<T extends string>({
                     <span title={option.label}>{option.label}</span>
                   </button>
                 ))
-              ) : (
+              ) : canCreate ? null : (
                 <p className="themed-select-empty">No matches</p>
               )}
             </div>
@@ -148,6 +160,11 @@ export function ThemedSelect<T extends string>({
           if (event.key === "Escape") {
             setOpen(false);
             setQuery("");
+          }
+          if (event.key === "Enter" && canCreate) {
+            event.preventDefault();
+            create();
+            return;
           }
           if (event.key === "Enter" && filtered[0]) {
             event.preventDefault();

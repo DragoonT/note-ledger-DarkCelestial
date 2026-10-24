@@ -4,7 +4,7 @@ use aes_gcm::{
 };
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
 };
 use pbkdf2::pbkdf2_hmac;
@@ -251,14 +251,14 @@ pub async fn detail_meta(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Option<ProtectedBankDetailMeta>>, ApiError> {
     owned_account(&state, &headers, id).await?;
-    sqlx::query_as::<_, (Uuid,)>(
-        "SELECT template_id FROM bank_account_protected_details WHERE account_id=$1",
+    let rows = sqlx::query_as::<_, (Uuid, Uuid)>(
+        "SELECT id,template_id FROM bank_account_protected_details WHERE account_id=$1 ORDER BY updated_at,id",
     )
     .bind(id)
-    .fetch_optional(&state.db)
+    .fetch_all(&state.db)
     .await
-    .map(|row| Json(row.map(|(template_id,)| ProtectedBankDetailMeta { template_id })))
-    .map_err(internal)
+    .map_err(internal)?;
+    Ok(Json(rows.first().map(|(_, template_id)| ProtectedBankDetailMeta { template_id: *template_id, template_ids: rows.iter().map(|(_,template_id)| *template_id).collect(), entries: rows.clone() })))
 }
 
 pub async fn save_detail(
@@ -269,6 +269,12 @@ pub async fn save_detail(
 ) -> Result<StatusCode, ApiError> {
     owned_account(&state, &headers, id).await?;
     let password = protected_detail_password(&input.password)?;
+    if let Some(entry_id) = input.id {
+        reveal_detail(State(state.clone()), headers.clone(), Path(id), Json(ProtectedBankDetailPassword {
+            id: Some(entry_id), template_id: None,
+            password: input.current_password.clone().unwrap_or_else(|| input.password.clone()),
+        })).await?;
+    }
     let fields = sqlx::query_scalar::<_, Vec<String>>(
         "SELECT fields FROM bank_detail_templates WHERE id=$1",
     )
@@ -309,7 +315,12 @@ pub async fn save_detail(
                 "Could not encrypt protected details".into(),
             )
         })?;
-    sqlx::query("INSERT INTO bank_account_protected_details(account_id,template_id,salt,nonce,ciphertext) VALUES($1,$2,$3,$4,$5) ON CONFLICT(account_id) DO UPDATE SET template_id=$2,salt=$3,nonce=$4,ciphertext=$5,updated_at=now()").bind(id).bind(input.template_id).bind(salt).bind(nonce).bind(ciphertext).execute(&state.db).await.map_err(internal)?;
+    if let Some(entry_id) = input.id {
+        let result = sqlx::query("UPDATE bank_account_protected_details SET template_id=$3,salt=$4,nonce=$5,ciphertext=$6,updated_at=now() WHERE account_id=$1 AND id=$2").bind(id).bind(entry_id).bind(input.template_id).bind(salt).bind(nonce).bind(ciphertext).execute(&state.db).await.map_err(internal)?;
+        if result.rows_affected() == 0 { return Err(ApiError(StatusCode::NOT_FOUND,"Protected details not found".into())); }
+    } else {
+        sqlx::query("INSERT INTO bank_account_protected_details(account_id,template_id,salt,nonce,ciphertext) VALUES($1,$2,$3,$4,$5)").bind(id).bind(input.template_id).bind(salt).bind(nonce).bind(ciphertext).execute(&state.db).await.map_err(internal)?;
+    }
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -321,7 +332,7 @@ pub async fn reveal_detail(
 ) -> Result<Json<RevealedBankDetail>, ApiError> {
     owned_account(&state, &headers, id).await?;
     let password = protected_detail_password(&input.password)?;
-    let (template_id,salt,nonce,ciphertext)=sqlx::query_as::<_,(Uuid,Vec<u8>,Vec<u8>,Vec<u8>)>("SELECT template_id,salt,nonce,ciphertext FROM bank_account_protected_details WHERE account_id=$1").bind(id).fetch_optional(&state.db).await.map_err(internal)?.ok_or_else(|| ApiError(StatusCode::NOT_FOUND,"Protected details not found".into()))?;
+    let (template_id,salt,nonce,ciphertext)=sqlx::query_as::<_,(Uuid,Vec<u8>,Vec<u8>,Vec<u8>)>("SELECT template_id,salt,nonce,ciphertext FROM bank_account_protected_details WHERE account_id=$1 AND ($2::uuid IS NULL OR id=$2) AND ($3::uuid IS NULL OR template_id=$3) ORDER BY updated_at,id LIMIT 1").bind(id).bind(input.id).bind(input.template_id).fetch_optional(&state.db).await.map_err(internal)?.ok_or_else(|| ApiError(StatusCode::NOT_FOUND,"Protected details not found".into()))?;
     let mut key = [0u8; 32];
     pbkdf2_hmac::<Sha256>(password.as_bytes(), &salt, KDF_ROUNDS, &mut key);
     let payload = Aes256Gcm::new_from_slice(&key)
@@ -345,14 +356,19 @@ pub async fn reveal_detail(
     }))
 }
 
+#[derive(serde::Deserialize)]
+pub struct DetailDeleteQuery { pub entry_id: Option<Uuid> }
+
 pub async fn delete_detail(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
+    Query(query): Query<DetailDeleteQuery>,
 ) -> Result<StatusCode, ApiError> {
     owned_account(&state, &headers, id).await?;
-    sqlx::query("DELETE FROM bank_account_protected_details WHERE account_id=$1")
+    sqlx::query("DELETE FROM bank_account_protected_details WHERE account_id=$1 AND ($2::uuid IS NULL OR id=$2)")
         .bind(id)
+        .bind(query.entry_id)
         .execute(&state.db)
         .await
         .map_err(internal)?;

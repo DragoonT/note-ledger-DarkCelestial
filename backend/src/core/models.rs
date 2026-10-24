@@ -181,17 +181,23 @@ pub struct BankDetailTemplateInput {
 }
 #[derive(Debug, Deserialize)]
 pub struct ProtectedBankDetailInput {
+    pub current_password: Option<String>,
+    pub id: Option<Uuid>,
     pub template_id: Uuid,
     pub values: std::collections::HashMap<String, String>,
     pub password: String,
 }
 #[derive(Debug, Deserialize)]
 pub struct ProtectedBankDetailPassword {
+    pub id: Option<Uuid>,
     pub password: String,
+    pub template_id: Option<Uuid>,
 }
 #[derive(Debug, Serialize)]
 pub struct ProtectedBankDetailMeta {
+    pub entries: Vec<(Uuid, Uuid)>,
     pub template_id: Uuid,
+    pub template_ids: Vec<Uuid>,
 }
 #[derive(Debug, Serialize)]
 pub struct RevealedBankDetail {

@@ -21,6 +21,20 @@
 .bank-account-modal .account-create-fields > :not(.protected-bank-details) { grid-column:1; }
 .protected-bank-details { grid-column:2; grid-row:1 / span 20; display:grid; grid-template-columns:1fr 1fr; align-content:start; gap:.85rem; min-width:0; padding-left:1.5rem; border-left:1px solid var(--border); }
 .protected-details-title { grid-column:1/-1; display:flex; min-height:44px; align-items:center; justify-content:space-between; gap:1rem; }
+.protected-details-title { flex-wrap:wrap; }
+.protected-details-actions { display:flex; align-items:center; gap:.7rem; margin-left:auto; }
+.protected-details-actions > .ui-btn { width:auto; white-space:nowrap; }
+.protected-details-actions > .ui-switch { flex-shrink:0; }
+.protected-details-nav { position:relative; }
+.protected-details-nav summary { display:grid; place-items:center; width:34px; height:34px; list-style:none; cursor:pointer; color:var(--muted-fg); border:1px solid var(--border); border-radius:8px; }
+.protected-details-nav summary::-webkit-details-marker { display:none; }
+.protected-details-nav summary svg { width:18px; height:18px; }
+.protected-details-nav summary:focus-visible { outline:2px solid var(--brand); outline-offset:2px; }
+.protected-details-menu { position:absolute; right:0; top:calc(100% + .4rem); z-index:20; width:max-content; min-width:190px; max-width:min(300px,80vw); padding:.35rem; border:1px solid var(--border); border-radius:10px; background:var(--card); box-shadow:0 8px 24px #0004; }
+.protected-details-menu button { display:block; width:100%; padding:.65rem .8rem; text-align:left; overflow-wrap:anywhere; background:none; border:0; border-radius:6px; color:var(--foreground); cursor:pointer; }
+.protected-details-menu button:hover, .protected-details-menu button[aria-current="true"] { background:var(--brand-soft); }
+.protected-details-menu button:disabled { opacity:.5; cursor:not-allowed; }
+.protected-details-menu p { padding:.4rem .7rem; color:var(--muted-fg); font-size:.8rem; }
 .protected-details-title h3 { margin:.2rem 0 0; font-size:1rem; }
 .protected-details-empty { grid-column:1/-1; margin:.25rem 0; color:var(--muted-fg); font-size:.8rem; }
 .protected-details-head { grid-column:1/-1; display:grid; grid-template-columns:1fr auto; align-items:end; gap:.75rem; }

@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { Ban, Check, Download, Edit3, Eye, Landmark, Plus, Trash2, Upload, X } from "lucide-react";
+import { Ban, Check, Download, Edit3, Eye, Landmark, Menu, Plus, Trash2, Upload, X } from "lucide-react";
 import { api, money, sumCents, type BackupPreview, type BankAccount, type BankDetailTemplate, type Transaction } from "@/app/api/client";
 import { Btn, Card, Checkbox, DatePicker, Field, Input, MonthPicker, SegmentedInput, Textarea } from "@/components/ui";
 import { ThemedSelect } from "@/components/ui/ThemedSelect";
@@ -117,7 +117,14 @@ export function BankAccounts({
   const [detailsUnlocked, setDetailsUnlocked] = useState(false);
   const [unlockRequested, setUnlockRequested] = useState(false);
   const [hadProtectedDetails, setHadProtectedDetails] = useState(false);
+  const [savedDetailTypes, setSavedDetailTypes] = useState<[string, string][]>([]);
+  const [detailEntryId, setDetailEntryId] = useState<string>();
   const [detailsDirty, setDetailsDirty] = useState(false);
+  const [detailAction, setDetailAction] = useState<"delete" | "reset" | null>(null);
+  const [currentDetailPassword, setCurrentDetailPassword] = useState("");
+  const [newDetailPassword, setNewDetailPassword] = useState("");
+  const [confirmDetailPassword, setConfirmDetailPassword] = useState("");
+  const [creatingDetailType, setCreatingDetailType] = useState(false);
   const [summaryKinds, setSummaryKinds] = useState<("income" | "expense")[]>([]);
   const [summaryYears, setSummaryYears] = useState<string[]>([]);
   const [summaryMonths, setSummaryMonths] = useState<string[]>([]);
@@ -209,6 +216,8 @@ export function BankAccounts({
   }, [error]);
 
   function closeForm() {
+    if (creatingDetailType) return;
+    setSavedDetailTypes([]); setDetailEntryId(undefined);
     setCreating(false);
     setEditing(null);
     setName("");
@@ -228,9 +237,12 @@ export function BankAccounts({
     setImageData("");
     setIconColor("");
     setDetailsEnabled(false); setDetailTemplateId(""); setDetailValues({}); setDetailPassword(""); setDetailPasswordConfirm(""); setDetailsUnlocked(true); setUnlockRequested(false); setHadProtectedDetails(false); setDetailsDirty(false);
+    setSavedDetailTypes([]); setDetailEntryId(undefined);
     setCreating(true);
   }
   function startEdit(account: BankAccount) {
+    setDetailAction(null);
+    setCurrentDetailPassword("");setNewDetailPassword("");setConfirmDetailPassword("");
     void api.bankDetailTemplates().then(setDetailTemplates).catch(()=>null);
     setName(account.name);
     setCurrency(account.currency);
@@ -240,28 +252,84 @@ export function BankAccounts({
     setIconColor(accountIconColors[account.id] ?? "");
     setEditing(account);
     setDetailValues({}); setDetailPassword(""); setDetailPasswordConfirm(""); setDetailsUnlocked(false); setUnlockRequested(false); setDetailsDirty(false);
-    void api.protectedBankDetailMeta(account.id).then((meta)=>{ setHadProtectedDetails(Boolean(meta)); setDetailsEnabled(Boolean(meta)); setDetailTemplateId(meta?.template_id ?? ""); }).catch((cause)=>setError(cause instanceof Error ? cause.message : tr("Could not load protected details")));
+    setSavedDetailTypes([]);
+    setDetailEntryId(undefined);
+    void api.protectedBankDetailMeta(account.id).then((meta)=>{ setSavedDetailTypes(meta?.entries ?? []); setDetailEntryId(meta?.entries?.[0]?.[0]); setHadProtectedDetails(Boolean(meta)); setDetailsEnabled(Boolean(meta)); setDetailTemplateId(meta?.template_id ?? ""); }).catch((cause)=>setError(cause instanceof Error ? cause.message : tr("Could not load protected details")));
+  }
+
+  function addBankDetail() {
+    setDetailAction(null);
+    setDetailsEnabled(true);
+    setDetailsDirty(false);
+    setDetailEntryId(undefined);
+    setDetailTemplateId("");
+    setHadProtectedDetails(false);
+    setDetailsUnlocked(true);
+    setDetailValues({});
+    setDetailPassword("");
+    setDetailPasswordConfirm("");
+    setUnlockRequested(false);
+  }
+
+  async function createDetailType(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed || creatingDetailType) return;
+    const existing = detailTemplates.find(item => item.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) { setDetailTemplateId(existing.id); return; }
+    const base = selectedDetailTemplate ?? detailTemplates.find(item => item.name === "Mastercard");
+    if (!base) { setError(tr("Select a detail type before adding a custom name")); return; }
+    setCreatingDetailType(true);
+    setError("");
+    try {
+      const created = await api.createBankDetailTemplate(trimmed, base.fields, base.field_types, base.field_options);
+      setDetailTemplates(items => [...items, created]);
+      setDetailTemplateId(created.id);
+      setDetailsDirty(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : tr("Could not add bank detail type"));
+    } finally { setCreatingDetailType(false); }
   }
 
   async function revealDetails() {
     if (!editing || !detailPassword) return;
     setSaving(true); setError("");
-    try { const detail=await api.revealProtectedBankDetail(editing.id,detailPassword); setDetailTemplateId(detail.template_id); setDetailValues(detail.values); setDetailsUnlocked(true); setUnlockRequested(false); }
+    try { const detail=await api.revealProtectedBankDetail(editing.id,detailPassword,detailTemplateId,detailEntryId); setDetailTemplateId(detail.template_id); setDetailValues(detail.values); setDetailsUnlocked(true); setUnlockRequested(false); }
     catch(cause) { setError(cause instanceof Error ? cause.message : tr("Could not reveal protected details")); }
+    finally { setSaving(false); }
+  }
+
+  async function applyDetailAction() {
+    if (!editing || !detailEntryId || !detailAction) return;
+    setSaving(true); setError("");
+    try {
+      if (detailAction === "delete") {
+        await api.removeProtectedBankDetail(editing.id,detailEntryId);
+        const remaining=savedDetailTypes.filter(([id])=>id!==detailEntryId);
+        setSavedDetailTypes(remaining);
+        addBankDetail();
+      } else {
+        if (newDetailPassword.length < 8) throw new Error(tr("Bank detail password must be at least 8 characters"));
+        if (newDetailPassword !== confirmDetailPassword) throw new Error(tr("Passwords do not match"));
+        const detail=await api.revealProtectedBankDetail(editing.id,currentDetailPassword,undefined,detailEntryId);
+        await api.saveProtectedBankDetail(editing.id,detail.template_id,detail.values,newDetailPassword,detailEntryId,currentDetailPassword);
+        setDetailValues({});setDetailPassword("");setDetailsUnlocked(false);setDetailsDirty(false);
+      }
+      setDetailAction(null);setCurrentDetailPassword("");setNewDetailPassword("");setConfirmDetailPassword("");
+    } catch(cause) { setError(cause instanceof Error ? cause.message : tr("Could not save bank details")); }
     finally { setSaving(false); }
   }
 
   async function save(event: FormEvent) {
     event.preventDefault();
+    if (creatingDetailType) return;
     setSaving(true);
     setError("");
     try {
       if (editing) {
-        if (!detailsEnabled && hadProtectedDetails) await api.removeProtectedBankDetail(editing.id);
-        else if (detailsEnabled && detailsDirty) {
+        if (detailsEnabled && detailsDirty) {
           if (!detailTemplateId || !detailPassword) throw new Error(tr("Password is required to save protected details"));
           if (!hadProtectedDetails && detailPassword !== detailPasswordConfirm) throw new Error(tr("Passwords do not match"));
-          await api.saveProtectedBankDetail(editing.id,detailTemplateId,detailValues,detailPassword);
+          await api.saveProtectedBankDetail(editing.id,detailTemplateId,detailValues,detailPassword,detailEntryId);
         }
         const updated = await api.updateAccount(editing.id, {
           name,
@@ -654,17 +722,26 @@ export function BankAccounts({
                     <p className="section-kicker">{tr("PROTECTED DETAILS")}</p>
                     <h3>{tr("Bank details")}</h3>
                   </div>
-                  <Switch
-                    checked={detailsEnabled}
-                    onChange={(enabled)=>{ setDetailsEnabled(enabled); setDetailsDirty(true); if (!enabled && !hadProtectedDetails) { setDetailTemplateId(""); setDetailValues({}); } }}
-                    label={tr("Enable protected bank account details")}
-                  />
+                  <div className="protected-details-actions">
+                    <Btn type="button" disabled={saving || creatingDetailType} onClick={addBankDetail}>+ {tr("Add bank detail")}</Btn>
+                    <Switch
+                      checked={detailsEnabled}
+                      onChange={(enabled)=>{ if (creatingDetailType) return; setDetailsEnabled(enabled); }}
+                      label={tr("Enable protected bank account details")}
+                    />
+                    <details className="protected-details-nav" onKeyDown={event => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}>
+                      <summary aria-label={tr("Saved bank details")} title={tr("Saved bank details")}><Menu aria-hidden="true" /></summary>
+                      <div className="protected-details-menu">
+                        {savedDetailTypes.length ? savedDetailTypes.map(([entryId,templateId],index)=><button key={entryId} type="button" disabled={saving || creatingDetailType} aria-current={detailEntryId === entryId ? "true" : undefined} onClick={event=>{setDetailsEnabled(true);setDetailsDirty(false);setDetailEntryId(entryId);setDetailTemplateId(templateId);setHadProtectedDetails(true);setDetailsUnlocked(false);setDetailValues({});setDetailPassword("");setDetailPasswordConfirm("");setUnlockRequested(false);event.currentTarget.closest("details")?.removeAttribute("open");}}>{index+1}. {detailTemplates.find((item)=>item.id===templateId)?.name ?? tr("Bank details")}</button>) : <p>{tr("No saved bank details")}</p>}
+                      </div>
+                    </details>
+                  </div>
                 </div>
               {detailsEnabled ? (
                 <>
                   <div className="protected-details-head">
                     <Field label={tr("Detail type")} required>
-                      <ThemedSelect value={detailTemplateId} options={detailTemplates.map((item)=>({value:item.id,label:tr(item.name)}))} placeholder={tr("Select detail type")} onChange={(value)=>{ if(value){setDetailTemplateId(value);setDetailValues({});setDetailsDirty(true);} }} />
+                      <ThemedSelect value={detailTemplateId} options={detailTemplates.map((item)=>({value:item.id,label:tr(item.name)}))} placeholder={tr("Select or type a detail type")} disabled={creatingDetailType || Boolean(editing && hadProtectedDetails && !detailsUnlocked)} onCreate={(name)=>void createDetailType(name)} createLabel={(name)=>`${tr("Use custom type")}: ${name}`} onChange={(value)=>{ if(value){setDetailTemplateId(value);setDetailValues({});setDetailsDirty(true);} }} />
                     </Field>
                     {editing && hadProtectedDetails && !detailsUnlocked ? (
                       <button type="button" className="protected-eye" title={tr("Enter your password to view protected details")} aria-label={tr("View protected details")} onClick={()=>setUnlockRequested(true)}><Eye /></button>
@@ -688,6 +765,18 @@ export function BankAccounts({
                       {!hadProtectedDetails ? <Field label={tr("Confirm bank detail password")} required><Input type="password" minLength={8} value={detailPasswordConfirm} onChange={(event)=>setDetailPasswordConfirm(event.target.value)} /></Field> : null}
                     </>
                   )}
+                  {editing && detailEntryId ? <div style={{gridColumn:"1 / -1"}}>
+                    <div className="protected-details-actions">
+                      <Btn type="button" variant="ghost" onClick={()=>{setDetailAction("reset");setCurrentDetailPassword("");setNewDetailPassword("");setConfirmDetailPassword("");}}>{tr("Reset bank detail password")}</Btn>
+                      <Btn type="button" variant="ghost" onClick={()=>setDetailAction("delete")}><Trash2 />{tr("Delete bank detail")}</Btn>
+                    </div>
+                    {detailAction === "reset" ? <section aria-label={tr("Reset bank detail password")}>
+                      <Field label={tr("Current bank detail password")}><Input type="password" autoComplete="current-password" value={currentDetailPassword} onChange={event=>setCurrentDetailPassword(event.target.value)} /></Field>
+                      <Field label={tr("New bank detail password")}><Input type="password" autoComplete="new-password" value={newDetailPassword} onChange={event=>setNewDetailPassword(event.target.value)} /></Field>
+                      <Field label={tr("Confirm bank detail password")}><Input type="password" autoComplete="new-password" value={confirmDetailPassword} onChange={event=>setConfirmDetailPassword(event.target.value)} /></Field>
+                      <div className="confirm-actions"><Btn type="button" variant="ghost" disabled={saving} onClick={()=>setDetailAction(null)}>{tr("Cancel")}</Btn><Btn type="button" loading={saving} onClick={()=>void applyDetailAction()}>{tr("Reset bank detail password")}</Btn></div>
+                    </section> : null}
+                  </div> : null}
                 </>
               ) : <p className="protected-details-empty">{tr("Turn on to store encrypted bank or card information.")}</p>}
               </div>
@@ -832,7 +921,7 @@ export function BankAccounts({
               <Btn type="button" variant="outline" onClick={closeForm}>
                 {tr("Cancel")}
               </Btn>
-              <Btn loading={saving}>
+              <Btn loading={saving || creatingDetailType}>
                 {editing ? tr("Save name") : tr("Add account")}
               </Btn>
             </div>
@@ -1003,6 +1092,13 @@ export function BankAccounts({
           </section>
         </div>
       ) : null}
+      {detailAction === "delete" ? <div className="modal-backdrop">
+        <section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-bank-detail-title" onKeyDown={event=>{if(event.key === "Escape" && !saving)setDetailAction(null);}}>
+          <div className="confirm-icon"><Trash2 /></div>
+          <div className="confirm-copy"><h3 id="delete-bank-detail-title">{tr("Delete bank detail?")}</h3><p>{tr("This permanently deletes only the selected bank detail.")}</p></div>
+          <div className="confirm-actions"><Btn type="button" autoFocus variant="ghost" disabled={saving} onClick={()=>setDetailAction(null)}>{tr("Cancel")}</Btn><Btn type="button" loading={saving} onClick={()=>void applyDetailAction()}>{tr("Delete bank detail")}</Btn></div>
+        </section>
+      </div> : null}
       {toast ? (
         <div className="toast-success">
           <Check />

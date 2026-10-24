@@ -84,14 +84,18 @@ DarkCelestial เป็นเว็บแอปบันทึกรายรั
 
 เมื่อ PostgreSQL รันอยู่แล้วและ `DATABASE_URL` ชี้ถูกต้อง:
 
-```bash
-# Terminal 1 — backend (จากโฟลเดอร์โปรเจกต์)
-cd backend
-cargo run            # รันที่ http://localhost:8080 และ apply migrations อัตโนมัติ
+- Terminal 1 — backend (จากโฟลเดอร์โปรเจกต์)
 
-# Terminal 2 — frontend (จากโฟลเดอร์โปรเจกต์)
+```bash
+cd backend
+cargo run
+```
+
+- Terminal 2 — frontend (จากโฟลเดอร์โปรเจกต์)
+
+```bash
 pnpm install
-pnpm dev             # รันที่ http://localhost:3000
+pnpm dev
 ```
 
 frontend จะเรียก API ที่ `http://localhost:8080` เป็นค่าเริ่มต้น (แก้ได้ด้วย `NEXT_PUBLIC_API_URL`)
@@ -162,25 +166,29 @@ docker compose up -d --build
 
 ถ้าพอร์ตดังกล่าวอาจถูกใช้งานอยู่ ให้ใช้สคริปต์เลือกพอร์ตอัตโนมัติตามระบบปฏิบัติการ:
 
+- Windows PowerShell
+
 ```powershell
-# Windows PowerShell
 .\start.ps1
 ```
 
+- Linux หรือ macOS
+
 ```bash
-# Linux หรือ macOS
 bash ./start.sh
 ```
 
 การเปิดตามปกติจะใช้ image เดิมและไม่บังคับ build ใหม่ หากแก้ source code ให้สั่ง build อย่างชัดเจน:
 
+- Windows PowerShell
+
 ```powershell
-# Windows PowerShell
 .\start.ps1 -Build
 ```
 
+- Linux หรือ macOS
+
 ```bash
-# Linux หรือ macOS
 bash ./start.sh --build
 ```
 
@@ -227,7 +235,3 @@ src/               Frontend Next.js (App Router)
   locales/         คำแปลภาษาอังกฤษและไทย
 public/            ไฟล์ static และรูปตัวอย่าง
 ```
-
-## ลิขสิทธิ์
-
-โปรเจกต์นี้ใช้ฟรีเพื่อการส่วนตัวและไม่แสวงหาผลกำไร — ใช้ คัดลอก แก้ไข และแบ่งปันได้ เพียงไม่ขายหรือใช้เชิงพาณิชย์ ดูรายละเอียดที่ [LICENSE](LICENSE)

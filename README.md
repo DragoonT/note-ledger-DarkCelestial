@@ -84,14 +84,17 @@ Or, to run without Docker:
 
 With PostgreSQL already running and `DATABASE_URL` pointing to it:
 
-```bash
-# Terminal 1 — backend (from the project root)
-cd backend
-cargo run            # listens on http://localhost:8080 and applies migrations
+- Terminal 1 — backend (from the project root)
 
-# Terminal 2 — frontend (from the project root)
+```bash
+cd backend
+cargo run
+```
+- Terminal 2 — frontend (from the project root)
+
+```bash
 pnpm install
-pnpm dev             # listens on http://localhost:3000
+pnpm dev
 ```
 
 The frontend expects the API at `http://localhost:8080` by default (set `NEXT_PUBLIC_API_URL` to override).
@@ -163,27 +166,30 @@ docker compose up -d --build
 ```
 
 If either fixed port may already be in use, run the automatic launcher for your operating system:
+- Windows PowerShell
 
 ```powershell
-# Windows PowerShell
 .\start.ps1
 ```
 
+- Linux or macOS
+
 ```bash
-# Linux or macOS
 bash ./start.sh
 ```
 
 Normal startup reuses the existing images and does not force another build. After changing source
 code, rebuild explicitly:
 
+- Windows PowerShell
+
 ```powershell
-# Windows PowerShell
 .\start.ps1 -Build
 ```
 
+- Linux or macOS
+
 ```bash
-# Linux or macOS
 bash ./start.sh --build
 ```
 
@@ -232,7 +238,3 @@ src/               Next.js frontend (App Router)
   locales/         English & Thai translations
 public/            Static assets and preview images
 ```
-
-## License
-
-This project is free for personal and non-commercial use — you may use, copy, modify, and share it freely, as long as you don't sell it or use it commercially. See [LICENSE](LICENSE) for details.

@@ -45,3 +45,5 @@ next-env.d.ts
 
 # generated persistent administrator credential
 /data/
+
+backend/target/

@@ -178,11 +178,11 @@ export const api = {
   removeBankDetailTemplate: (id: string) =>
     request<void>(`/api/bank-detail-templates/${id}`, { method: "DELETE" }),
   protectedBankDetailMeta: (id: string) => request<ProtectedBankDetailMeta>(`/api/accounts/${id}/protected-details`),
-  saveProtectedBankDetail: (id: string, template_id: string, values: Record<string,string>, password: string) =>
-    request<void>(`/api/accounts/${id}/protected-details`, { method: "PUT", body: JSON.stringify({ template_id, values, password: encodePassword(password) }) }),
-  revealProtectedBankDetail: (id: string, password: string) =>
-    request<ProtectedBankDetail>(`/api/accounts/${id}/protected-details/reveal`, { method: "POST", body: JSON.stringify({ password: encodePassword(password) }) }),
-  removeProtectedBankDetail: (id: string) => request<void>(`/api/accounts/${id}/protected-details`, { method: "DELETE" }),
+  saveProtectedBankDetail: (id: string, template_id: string, values: Record<string,string>, password: string, entryId?: string, currentPassword?: string) =>
+    request<void>(`/api/accounts/${id}/protected-details`, { method: "PUT", body: JSON.stringify({ id: entryId, template_id, values, password: encodePassword(password), current_password: currentPassword ? encodePassword(currentPassword) : undefined }) }),
+  revealProtectedBankDetail: (id: string, password: string, template_id?: string, entryId?: string) =>
+    request<ProtectedBankDetail>(`/api/accounts/${id}/protected-details/reveal`, { method: "POST", body: JSON.stringify({ id: entryId, password: encodePassword(password), template_id }) }),
+  removeProtectedBankDetail: (id: string, entryId?: string) => request<void>(`/api/accounts/${id}/protected-details${entryId ? `?entry_id=${encodeURIComponent(entryId)}` : ""}`, { method: "DELETE" }),
   exportBackup: () => request<BackupData>("/api/backup"),
   restoreBackup: (body: BackupData) =>
     request<void>("/api/backup", {

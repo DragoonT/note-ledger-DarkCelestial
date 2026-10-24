@@ -7,7 +7,10 @@
     "saved": "บันทึกการตั้งค่าเรียบร้อยแล้ว",
     "created": "สร้างบัญชีเรียบร้อยแล้ว"
   },
-  "language": { "english": "อังกฤษ", "thai": "ไทย" },
+  "language": {
+    "english": "อังกฤษ",
+    "thai": "ไทย"
+  },
   "text": {
     "Bank account added successfully": "เพิ่มบัญชีธนาคารเรียบร้อยแล้ว",
     "Bank account renamed successfully": "เปลี่ยนชื่อบัญชีธนาคารเรียบร้อยแล้ว",
@@ -192,7 +195,6 @@
     "Search description, category, or note": "ค้นหารายละเอียด หมวดหมู่ หรือหมายเหตุ",
     "No transactions found": "ไม่พบรายการ",
     "Add your first record or change the filters.": "เพิ่มรายการแรกหรือเปลี่ยนตัวกรอง",
-    "Date & time": "วันที่และเวลา",
     "Description": "รายละเอียด",
     "Category": "หมวดหมู่",
     "Type": "ประเภท",
@@ -271,11 +273,17 @@
     "Bank detail password": "รหัสผ่านรายละเอียดธนาคาร",
     "Create bank detail password": "สร้างรหัสผ่านรายละเอียดธนาคาร",
     "Confirm bank detail password": "ยืนยันรหัสผ่านรายละเอียดธนาคาร",
-    "Passwords do not match": "รหัสผ่านไม่ตรงกัน",
     "PROTECTED DETAILS": "รายละเอียดที่ป้องกัน",
     "Bank details": "รายละเอียดธนาคาร",
     "Detail type": "ประเภทรายละเอียด",
     "Select detail type": "เลือกประเภทรายละเอียด",
+    "Add bank detail": "เพิ่มรายละเอียดบัญชีธนาคาร",
+    "Reset bank detail password": "เปลี่ยนรหัสผ่านรายละเอียดธนาคาร",
+    "Delete bank detail": "ลบรายละเอียดธนาคาร",
+    "Delete bank detail?": "ลบรายละเอียดธนาคารหรือไม่?",
+    "This permanently deletes only the selected bank detail.": "ลบเฉพาะรายละเอียดธนาคารที่เลือกอย่างถาวร",
+    "Current bank detail password": "รหัสผ่านรายละเอียดธนาคารปัจจุบัน",
+    "New bank detail password": "รหัสผ่านรายละเอียดธนาคารใหม่",
     "Mastercard": "มาสเตอร์การ์ด",
     "Visa card": "บัตรวีซ่า",
     "PromptPay": "พร้อมเพย์",
@@ -336,6 +344,11 @@
     "Export and delete": "ส่งออกและลบ",
     "Enter a backup password before deleting your data": "กรอกรหัสผ่านข้อมูลสำรองก่อนลบข้อมูล",
     "Backup passwords do not match": "รหัสผ่านข้อมูลสำรองไม่ตรงกัน",
-    "Could not delete account data": "ไม่สามารถลบข้อมูลบัญชีได้"
+    "Could not delete account data": "ไม่สามารถลบข้อมูลบัญชีได้",
+    "Select a detail type before adding a custom name": "เลือกประเภทรายละเอียดก่อนเพิ่มชื่อที่กำหนดเอง",
+    "Saved bank details": "รายละเอียดธนาคารที่บันทึกไว้",
+    "No saved bank details": "ยังไม่มีรายละเอียดธนาคารที่บันทึกไว้",
+    "Select or type a detail type": "เลือกหรือพิมพ์ประเภทรายละเอียด",
+    "Use custom type": "ใช้ประเภทที่กำหนดเอง"
   }
 }

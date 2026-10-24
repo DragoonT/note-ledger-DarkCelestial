@@ -1,16 +1,15 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN corepack enable && pnpm install --frozen-lockfile --fetch-timeout=600000 --fetch-retries=5 --network-concurrency=8
 
-FROM node:24-alpine AS builder
+FROM deps AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_URL=http://localhost:8080
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN corepack enable && pnpm build
+RUN pnpm build
 
 FROM node:24-alpine AS runner
 WORKDIR /app

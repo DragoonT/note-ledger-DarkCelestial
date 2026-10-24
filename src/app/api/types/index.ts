@@ -108,7 +108,7 @@ export type BankDetailTemplate = {
   field_options: Record<string, string[]>;
 };
 export type ProtectedBankDetail = { template_id: string; values: Record<string, string> };
-export type ProtectedBankDetailMeta = { template_id: string } | null;
+export type ProtectedBankDetailMeta = { template_id: string; template_ids: string[]; entries: [string, string][] } | null;
 export type BackupData = {
   version: number;
   exported_at: string;

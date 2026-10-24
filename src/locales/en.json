@@ -7,7 +7,10 @@
     "saved": "Settings saved successfully",
     "created": "Account created successfully"
   },
-  "language": { "english": "English", "thai": "Thai" },
+  "language": {
+    "english": "English",
+    "thai": "Thai"
+  },
   "text": {
     "Bank account added successfully": "Bank account added successfully",
     "Bank account renamed successfully": "Bank account renamed successfully",
@@ -192,7 +195,6 @@
     "Search description, category, or note": "Search description, category, or note",
     "No transactions found": "No transactions found",
     "Add your first record or change the filters.": "Add your first record or change the filters.",
-    "Date & time": "Date & time",
     "Description": "Description",
     "Category": "Category",
     "Type": "Type",
@@ -271,11 +273,17 @@
     "Bank detail password": "Bank detail password",
     "Create bank detail password": "Create bank detail password",
     "Confirm bank detail password": "Confirm bank detail password",
-    "Passwords do not match": "Passwords do not match",
     "PROTECTED DETAILS": "PROTECTED DETAILS",
     "Bank details": "Bank details",
     "Detail type": "Detail type",
     "Select detail type": "Select detail type",
+    "Add bank detail": "Add bank detail",
+    "Reset bank detail password": "Reset bank detail password",
+    "Delete bank detail": "Delete bank detail",
+    "Delete bank detail?": "Delete bank detail?",
+    "This permanently deletes only the selected bank detail.": "This permanently deletes only the selected bank detail.",
+    "Current bank detail password": "Current bank detail password",
+    "New bank detail password": "New bank detail password",
     "Mastercard": "Mastercard",
     "Visa card": "Visa card",
     "PromptPay": "PromptPay",
@@ -336,6 +344,11 @@
     "Export and delete": "Export and delete",
     "Enter a backup password before deleting your data": "Enter a backup password before deleting your data",
     "Backup passwords do not match": "Backup passwords do not match",
-    "Could not delete account data": "Could not delete account data"
+    "Could not delete account data": "Could not delete account data",
+    "Select a detail type before adding a custom name": "Select a detail type before adding a custom name",
+    "Saved bank details": "Saved bank details",
+    "No saved bank details": "No saved bank details",
+    "Select or type a detail type": "Select or type a detail type",
+    "Use custom type": "Use custom type"
   }
 }
