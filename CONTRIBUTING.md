@@ -15,9 +15,10 @@ removed. Do not include passwords, private keys, account files, backups, or your
    Use a separate development database and test accounts.
 3. Install frontend dependencies with `pnpm install --frozen-lockfile`.
 4. Start the API with `cargo run --manifest-path backend/Cargo.toml` and the frontend with `pnpm dev`.
-   Alternatively, use the Docker launchers documented in the README.
+   Alternatively, use the Docker / Kiri launchers documented in the README
+   ([Kiri](https://github.com/libracoder/kiri) recommended; open Kiri and click **Start** first).
 
-After source changes, rebuild Docker with `./start.ps1 -Build` on Windows or
+After source changes, rebuild containers with `./start.ps1 -Build` on Windows or
 `bash ./start.sh --build` on Linux/macOS.
 
 ## Make a change

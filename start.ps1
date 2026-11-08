@@ -5,13 +5,62 @@ param(
 $ErrorActionPreference = "Stop"
 
 $dockerCommand = Get-Command docker -ErrorAction SilentlyContinue
-$docker = if ($dockerCommand) {
-    $dockerCommand.Source
-} else {
-    "C:\Program Files\Docker\Docker\resources\bin\docker.exe"
+$dockerCandidates = @(
+    $(if ($dockerCommand) { $dockerCommand.Source }),
+    "C:\Program Files\Docker\Docker\resources\bin\docker.exe",
+    "$env:LOCALAPPDATA\Programs\Kiri\resources\bin\docker.exe",
+    "$env:ProgramFiles\Kiri\resources\bin\docker.exe"
+) | Where-Object { $_ }
+
+$docker = $dockerCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+if (-not $docker) {
+    throw @"
+Docker CLI was not found.
+Install Kiri (recommended: https://runkiri.com/releases/) or Docker Desktop, then open Kiri and click Start for the Linux VM.
+"@
 }
-if (-not (Test-Path -LiteralPath $docker) -and -not $dockerCommand) {
-    throw "Docker CLI was not found. Install or start Docker Desktop first."
+
+function Get-PreferredDockerContext {
+    if ($env:DOCKER_CONTEXT -and $env:DOCKER_CONTEXT.Trim()) {
+        return $env:DOCKER_CONTEXT.Trim()
+    }
+    if ($env:NOTE_LEDGER_DOCKER_CONTEXT -and $env:NOTE_LEDGER_DOCKER_CONTEXT.Trim()) {
+        return $env:NOTE_LEDGER_DOCKER_CONTEXT.Trim()
+    }
+
+    try {
+        $names = & $docker context ls --format "{{.Name}}" 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            return $null
+        }
+        foreach ($name in $names) {
+            if ($name -eq "kiri") {
+                return "kiri"
+            }
+        }
+    } catch {
+        return $null
+    }
+    return $null
+}
+
+function Get-DockerArgPrefix {
+    $context = Get-PreferredDockerContext
+    if ($context) {
+        return @("--context", $context)
+    }
+    return @()
+}
+
+function Invoke-ProjectDocker {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$DockerArguments
+    )
+
+    $args = @(Get-DockerArgPrefix) + $DockerArguments
+    & $docker @args
+    return $LASTEXITCODE
 }
 
 function Test-PortAvailable([int]$Port) {
@@ -40,7 +89,8 @@ function Find-FreePort([int]$PreferredPort) {
 
 function Get-CurrentProjectPort([int]$ContainerPort) {
     try {
-        $lines = & $docker compose ps --format json 2>$null
+        $psArgs = @(Get-DockerArgPrefix) + @("compose", "ps", "--format", "json")
+        $lines = & $docker @psArgs 2>$null
         foreach ($line in $lines) {
             if (-not $line) { continue }
             $service = $line | ConvertFrom-Json
@@ -54,6 +104,23 @@ function Get-CurrentProjectPort([int]$ContainerPort) {
         return $null
     }
     return $null
+}
+
+$preferredContext = Get-PreferredDockerContext
+if ($preferredContext) {
+    Write-Host "Docker context: $preferredContext"
+} else {
+    Write-Host "Docker context: default"
+}
+
+$engineExit = Invoke-ProjectDocker -DockerArguments @("info", "--format", "{{.ServerVersion}}")
+if ($engineExit -ne 0) {
+    throw @"
+Docker engine is not reachable.
+If you use Kiri: open Kiri and click Start for the Linux VM, then retry.
+Docker Desktop / Docker Engine users: start the engine and retry.
+Override context with DOCKER_CONTEXT or NOTE_LEDGER_DOCKER_CONTEXT if needed.
+"@
 }
 
 $currentWebPort = Get-CurrentProjectPort 3000
@@ -72,12 +139,12 @@ $composeArguments = @("compose", "up", "-d")
 if ($Build) {
     $composeArguments += "--build"
 }
-& $docker @composeArguments
-if ($LASTEXITCODE -ne 0) {
-    throw "Docker Compose failed with exit code $LASTEXITCODE."
+$composeExit = Invoke-ProjectDocker -DockerArguments $composeArguments
+if ($composeExit -ne 0) {
+    throw "Docker Compose failed with exit code $composeExit."
 }
 
-& $docker buildx prune --force --max-used-space 8GB
-if ($LASTEXITCODE -ne 0) {
+$pruneExit = Invoke-ProjectDocker -DockerArguments @("buildx", "prune", "--force", "--max-used-space", "8GB")
+if ($pruneExit -ne 0) {
     Write-Warning "The website started, but Docker build-cache maintenance failed."
 }

@@ -66,15 +66,18 @@ DarkCelestial เป็นเว็บแอปบันทึกรายรั
 
 - **Frontend:** Next.js (App Router) + React + TypeScript + Tailwind CSS
 - **Backend:** Rust (Axum + SQLx) กับ PostgreSQL
-- **Deployment:** Docker Compose (api + db + web)
+- **Deployment:** Docker Compose / Kiri (api + web; PostgreSQL บนโฮสต์)
 
 ## เริ่มต้นใช้งาน
 
 ### สิ่งที่ต้องมี
 
-- **Docker** และ **Docker Compose** (แนะนำ — รันทุกอย่างให้)
+- **Docker-compatible runtime** และ **Docker Compose** (แนะนำ — รัน container `api` กับ `web`)
+  - **แนะนำ:** [Kiri](https://github.com/libracoder/kiri) — ตัวรัน container เบา ๆ แทน Docker Desktop บน Windows, macOS และ Linux ([ดาวน์โหลด](https://runkiri.com/releases/))
+  - ใช้กับ **Docker Desktop** หรือ **Docker Engine** ปกติได้เช่นกัน
+- **PostgreSQL** 14+ บนเครื่องโฮสต์ (ฐานข้อมูลไม่อยู่ใน Compose)
 
-หรือจะรันเองไม่ผ่าน Docker:
+หรือจะรันเองไม่ผ่าน container:
 
 - **Node.js** 20+ และ **pnpm** 11+ — build frontend (Next.js 16, React 19)
 - **Rust** stable (2024 edition) — build backend
@@ -132,7 +135,10 @@ frontend จะเรียก API ที่ `http://localhost:8080` เป็�
 
 1. เปิด PostgreSQL ให้ทำงาน บน Linux โดยทั่วไปเป็น system service ส่วน macOS อาจใช้ Homebrew
    service หรือ Postgres.app หลังสร้างฐานข้อมูลแล้วสามารถปิด pgAdmin ได้
-2. เปิด Docker Desktop หรือเปิด Docker Engine และตรวจสอบว่า `docker compose version` ใช้งานได้
+2. เปิด container runtime และตรวจสอบว่า `docker compose version` ใช้งานได้:
+   - **Kiri (แนะนำ):** เปิด Kiri แล้วกด **Start** ที่ Linux VM (ถ้า VM เป็น Off จะรัน Compose ไม่ได้)
+     ครั้งแรกจะสร้าง Docker context ชื่อ `kiri`
+   - **Docker Desktop / Docker Engine:** เปิด engine ตามปกติ
 3. เปิด Terminal ที่โฟลเดอร์โปรเจกต์ แล้วรัน launcher ให้ตรงกับระบบปฏิบัติการ
 
 ### 1. โคลนและตั้งค่า
@@ -153,15 +159,25 @@ PUBLIC_API_URL=http://localhost:8080
 
 หมายเหตุ:
 - ถ้า PostgreSQL รันบนเครื่องคุณเอง ใช้ `host.docker.internal` เป็น host โดย Compose ได้ตั้งค่า
-  ชื่อนี้ให้ใช้ได้ทั้ง Linux, Windows และ macOS
+  ชื่อนี้ให้ใช้ได้กับ Kiri, Docker Desktop และ Docker Engine บน Linux / Windows / macOS
 - สร้างผู้ใช้เพิ่มได้ภายในแอปหลังล็อกอินเป็น admin
 
-### 2. รันด้วย Docker (แนะนำ)
+### 2. รันด้วย Docker / Kiri (แนะนำ)
+
+`start.ps1` / `start.sh` จะเลือก Docker context ชื่อ **`kiri`** อัตโนมัติถ้ามี (หลังติดตั้ง Kiri)
+ถ้าต้องการบังคับใช้ engine อื่น ให้ตั้ง `DOCKER_CONTEXT` หรือ `NOTE_LEDGER_DOCKER_CONTEXT`
+(เช่น `desktop-linux` สำหรับ Docker Desktop บน Windows)
 
 คำสั่ง Docker Compose แบบเดิมยังใช้ได้ และจะใช้พอร์ต `3000` กับ `8080` แบบคงที่:
 
 ```powershell
 docker compose up -d --build
+```
+
+ระบุ Kiri โดยตรง:
+
+```powershell
+docker --context kiri compose up -d --build
 ```
 
 ถ้าพอร์ตดังกล่าวอาจถูกใช้งานอยู่ ให้ใช้สคริปต์เลือกพอร์ตอัตโนมัติตามระบบปฏิบัติการ:

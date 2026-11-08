@@ -66,15 +66,18 @@ It doesn't connect to your bank or scrape anything. Every record is entered by y
 
 - **Frontend:** Next.js (App Router) + React + TypeScript + Tailwind CSS
 - **Backend:** Rust (Axum + SQLx) with PostgreSQL
-- **Deployment:** Docker Compose (api + db + web)
+- **Deployment:** Docker Compose / Kiri (api + web; PostgreSQL on the host)
 
 ## Getting started
 
 ### Requirements
 
-- **Docker** and **Docker Compose** (recommended — runs everything)
+- **A Docker-compatible runtime** and **Docker Compose** (recommended — runs the `api` and `web` containers)
+  - **Recommended:** [Kiri](https://github.com/libracoder/kiri) — small, fast replacement for Docker Desktop on Windows, macOS, and Linux ([download](https://runkiri.com/releases/))
+  - Also works with **Docker Desktop** or a normal **Docker Engine** install
+- **PostgreSQL** 14+ on the host (the database is not inside Compose)
 
-Or, to run without Docker:
+Or, to run without containers:
 
 - **Node.js** 20+ and **pnpm** 11+ — frontend build (Next.js 16, React 19)
 - **Rust** stable 2024-edition toolchain — backend build
@@ -132,7 +135,10 @@ Before starting the website on any operating system:
 
 1. Start PostgreSQL itself. On Linux this is normally its system service; on macOS it may be a
    Homebrew service or Postgres.app. pgAdmin may be closed after the database is created.
-2. Start Docker Desktop, or start Docker Engine and make sure `docker compose version` works.
+2. Start your container runtime and make sure `docker compose version` works:
+   - **Kiri (recommended):** open Kiri and click **Start** for the Linux VM (when the VM is Off,
+     Compose cannot start). First launch creates a `kiri` Docker context.
+   - **Docker Desktop / Docker Engine:** start the engine as usual.
 3. Open a terminal in the project directory and run the launcher shown below for your operating
    system. It starts both website containers; the steps are otherwise the same on every platform.
 
@@ -154,15 +160,25 @@ PUBLIC_API_URL=http://localhost:8080
 
 Notes:
 - Use `host.docker.internal` as the DB host if PostgreSQL runs on your host machine. Compose maps
-  this name correctly on Linux as well as Docker Desktop for Windows and macOS.
+  this name correctly on Linux as well as Kiri, Docker Desktop, and Docker Engine on Windows/macOS.
 - More users can be created later inside the app after signing in as admin.
 
-### 2. Run with Docker (recommended)
+### 2. Run with Docker / Kiri (recommended)
+
+`start.ps1` / `start.sh` prefer the **`kiri`** Docker context when it exists (after installing Kiri).
+To force another engine, set `DOCKER_CONTEXT` or `NOTE_LEDGER_DOCKER_CONTEXT` (for example
+`desktop-linux` for Docker Desktop on Windows).
 
 Standard Docker Compose still works and uses fixed ports `3000` and `8080`:
 
 ```powershell
 docker compose up -d --build
+```
+
+With Kiri explicitly:
+
+```powershell
+docker --context kiri compose up -d --build
 ```
 
 If either fixed port may already be in use, run the automatic launcher for your operating system:
