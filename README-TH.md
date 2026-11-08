@@ -66,16 +66,15 @@ DarkCelestial เป็นเว็บแอปบันทึกรายรั
 
 - **Frontend:** Next.js (App Router) + React + TypeScript + Tailwind CSS
 - **Backend:** Rust (Axum + SQLx) กับ PostgreSQL
-- **Deployment:** Docker Compose / Kiri (api + web; PostgreSQL บนโฮสต์)
+- **Deployment:** Docker Compose / Kiri (`db` + `api` + `web`)
 
 ## เริ่มต้นใช้งาน
 
 ### สิ่งที่ต้องมี
 
-- **Docker-compatible runtime** และ **Docker Compose** (แนะนำ — รัน container `api` กับ `web`)
+- **Docker-compatible runtime** และ **Docker Compose** (แนะนำ — รัน `db`, `api` และ `web`)
   - **แนะนำ:** [Kiri](https://github.com/libracoder/kiri) — ตัวรัน container เบา ๆ แทน Docker Desktop บน Windows, macOS และ Linux ([ดาวน์โหลด](https://runkiri.com/releases/))
   - ใช้กับ **Docker Desktop** หรือ **Docker Engine** ปกติได้เช่นกัน
-- **PostgreSQL** 14+ บนเครื่องโฮสต์ (ฐานข้อมูลไม่อยู่ใน Compose)
 
 หรือจะรันเองไม่ผ่าน container:
 
@@ -85,7 +84,7 @@ DarkCelestial เป็นเว็บแอปบันทึกรายรั
 
 ### รันโดยไม่ใช้ Docker
 
-เมื่อ PostgreSQL รันอยู่แล้วและ `DATABASE_URL` ชี้ถูกต้อง:
+เมื่อ PostgreSQL รันอยู่แล้วและ `DATABASE_URL` ชี้ไปที่โฮสต์ (`localhost` ไม่ใช่ `db`):
 
 - Terminal 1 — backend (จากโฟลเดอร์โปรเจกต์)
 
@@ -103,43 +102,17 @@ pnpm dev
 
 frontend จะเรียก API ที่ `http://localhost:8080` เป็นค่าเริ่มต้น (แก้ได้ด้วย `NEXT_PUBLIC_API_URL`)
 
-### 0. สร้างฐานข้อมูลในโปรแกรม PostgreSQL
+### 0. Container runtime
 
-แอปต้องมี PostgreSQL ที่กำลังทำงานและฐานข้อมูลชื่อ `pocket_ledger` ส่วน **pgAdmin ไม่จำเป็นต้องเปิดไว้**
-เพราะเป็นเพียงโปรแกรมจัดการฐานข้อมูลแบบกราฟิกเท่านั้น
+PostgreSQL รัน**ใน Compose** เป็น service ชื่อ `db` (เก็บข้อมูลใน Docker volume) — เส้นทางที่แนะนำ**ไม่ต้อง**ติดตั้ง PostgreSQL บนเครื่องโฮสต์
 
-สร้างฐานข้อมูลผ่าน pgAdmin หรือ `psql` ได้ดังนี้:
+ก่อนเปิดเว็บไซต์:
 
-**pgAdmin 4 (Windows):**
-
-1. เปิด **pgAdmin 4** จากเมนู Start แล้วใส่รหัสผ่านที่ตั้งไว้ตอนติดตั้ง PostgreSQL
-2. ในแถบซ้าย ขยาย **Servers → PostgreSQL**
-3. คลิกขวาที่ **Databases → Create → Database…**
-4. ในช่อง **Database** พิมพ์ `pocket_ledger` แล้วกด **Save**
-
-**SQL Shell (`psql` ใช้ได้บน Windows, Linux และ macOS):**
-
-1. บน Windows ให้เปิด **SQL Shell (psql)** ส่วน Linux หรือ macOS ให้เปิด Terminal
-2. เชื่อมต่อด้วย PostgreSQL user ของคุณ (โดยทั่วไปใช้ `psql -U postgres`) แล้วใส่รหัสผ่านเมื่อระบบถาม
-3. พิมพ์คำสั่งนี้แล้วกด Enter:
-
-   ```sql
-   CREATE DATABASE pocket_ledger;
-   ```
-
-4. ถ้าขึ้น `CREATE DATABASE` แปลว่าสร้างสำเร็จ
-
-จำรหัสผ่าน user PostgreSQL ไว้ — `DATABASE_URL` ต้องใช้
-
-ก่อนเปิดเว็บไซต์บนทุกระบบปฏิบัติการ:
-
-1. เปิด PostgreSQL ให้ทำงาน บน Linux โดยทั่วไปเป็น system service ส่วน macOS อาจใช้ Homebrew
-   service หรือ Postgres.app หลังสร้างฐานข้อมูลแล้วสามารถปิด pgAdmin ได้
-2. เปิด container runtime และตรวจสอบว่า `docker compose version` ใช้งานได้:
+1. เปิด container runtime และตรวจสอบว่า `docker compose version` ใช้งานได้:
    - **Kiri (แนะนำ):** เปิด Kiri แล้วกด **Start** ที่ Linux VM (ถ้า VM เป็น Off จะรัน Compose ไม่ได้)
      ครั้งแรกจะสร้าง Docker context ชื่อ `kiri`
    - **Docker Desktop / Docker Engine:** เปิด engine ตามปกติ
-3. เปิด Terminal ที่โฟลเดอร์โปรเจกต์ แล้วรัน launcher ให้ตรงกับระบบปฏิบัติการ
+2. เปิด Terminal ที่โฟลเดอร์โปรเจกต์ แล้วรัน launcher ให้ตรงกับระบบปฏิบัติการ
 
 ### 1. โคลนและตั้งค่า
 
@@ -148,18 +121,22 @@ git clone https://github.com/DragoonT/note-ledger-DarkCelestial.git
 cd note-ledger-DarkCelestial
 ```
 
-ไฟล์ `.env` **ไม่ได้** commit ขึ้น GitHub สร้างเองที่โฟลเดอร์หลักของโปรเจกต์:
+ไฟล์ `.env` **ไม่ได้** commit ขึ้น GitHub สร้างเองที่โฟลเดอร์หลัก (ดู `.env.example`):
 
 ```env
-DATABASE_URL=postgres://postgres:URL_ENCODED_PASSWORD@host.docker.internal:5432/pocket_ledger
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=change-me
+POSTGRES_DB=pocket_ledger
+DATABASE_URL=postgres://postgres:change-me@db:5432/pocket_ledger
 ADMIN_USERNAME=your_admin_username
 PUBLIC_WEB_URL=http://localhost:3000
 PUBLIC_API_URL=http://localhost:8080
 ```
 
 หมายเหตุ:
-- ถ้า PostgreSQL รันบนเครื่องคุณเอง ใช้ `host.docker.internal` เป็น host โดย Compose ได้ตั้งค่า
-  ชื่อนี้ให้ใช้ได้กับ Kiri, Docker Desktop และ Docker Engine บน Linux / Windows / macOS
+- ใน Compose ต้องใช้โฮสต์ชื่อ service `db` (ไม่ใช่ `localhost` / `host.docker.internal`)
+- ถ้ารหัสผ่านมีอักขระพิเศษ ให้ URL-encode เฉพาะใน `DATABASE_URL`
+- Postgres เปิดพอร์ตโฮสต์ **5433** เป็นค่าเริ่มต้น (`DB_PORT`) เพื่อไม่ชนกับติดตั้งบน 5432
 - สร้างผู้ใช้เพิ่มได้ภายในแอปหลังล็อกอินเป็น admin
 
 ### 2. รันด้วย Docker / Kiri (แนะนำ)
@@ -209,6 +186,7 @@ bash ./start.sh --build
 ```
 
 จะเริ่ม:
+- `db` — PostgreSQL 18 (ข้อมูลอยู่ใน volume `postgres_data`)
 - `api` — backend Rust (รัน migrations อัตโนมัติตอนเริ่ม)
 - `web` — frontend Next.js
 

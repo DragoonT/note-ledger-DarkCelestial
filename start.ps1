@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$Build
 )
 
@@ -58,9 +58,21 @@ function Invoke-ProjectDocker {
         [string[]]$DockerArguments
     )
 
-    $args = @(Get-DockerArgPrefix) + $DockerArguments
-    & $docker @args
-    return $LASTEXITCODE
+    # Do not name this $args — that shadows PowerShell's automatic variable.
+    # Keep native docker stderr as progress (not terminating errors under $ErrorActionPreference Stop).
+    $dockerCliArgs = @(Get-DockerArgPrefix) + $DockerArguments
+    $previousErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & $docker @dockerCliArgs | Out-Host
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorAction
+    }
+    if ($null -eq $code) {
+        return 0
+    }
+    return [int]$code
 }
 
 function Test-PortAvailable([int]$Port) {

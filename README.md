@@ -66,16 +66,15 @@ It doesn't connect to your bank or scrape anything. Every record is entered by y
 
 - **Frontend:** Next.js (App Router) + React + TypeScript + Tailwind CSS
 - **Backend:** Rust (Axum + SQLx) with PostgreSQL
-- **Deployment:** Docker Compose / Kiri (api + web; PostgreSQL on the host)
+- **Deployment:** Docker Compose / Kiri (`db` + `api` + `web`)
 
 ## Getting started
 
 ### Requirements
 
-- **A Docker-compatible runtime** and **Docker Compose** (recommended — runs the `api` and `web` containers)
+- **A Docker-compatible runtime** and **Docker Compose** (recommended — runs `db`, `api`, and `web`)
   - **Recommended:** [Kiri](https://github.com/libracoder/kiri) — small, fast replacement for Docker Desktop on Windows, macOS, and Linux ([download](https://runkiri.com/releases/))
   - Also works with **Docker Desktop** or a normal **Docker Engine** install
-- **PostgreSQL** 14+ on the host (the database is not inside Compose)
 
 Or, to run without containers:
 
@@ -85,7 +84,7 @@ Or, to run without containers:
 
 ### Run without Docker
 
-With PostgreSQL already running and `DATABASE_URL` pointing to it:
+With PostgreSQL already running and `DATABASE_URL` pointing to it (host `localhost`, not `db`):
 
 - Terminal 1 — backend (from the project root)
 
@@ -102,45 +101,18 @@ pnpm dev
 
 The frontend expects the API at `http://localhost:8080` by default (set `NEXT_PUBLIC_API_URL` to override).
 
-### 0. Create the database in your PostgreSQL
+### 0. Container runtime
 
-The app needs a running PostgreSQL server and a database named `pocket_ledger`. **pgAdmin is
-optional**; it is only a graphical database-management tool and does not need to stay open while
-the website runs.
+PostgreSQL runs **inside Compose** as the `db` service (persistent Docker volume). You do **not** need a host PostgreSQL install for the recommended path.
 
-Create the database using either pgAdmin or `psql`:
+Before starting the website:
 
-**pgAdmin 4 (Windows):**
-
-1. Open **pgAdmin 4** from the Start menu and sign in with the password you set when installing PostgreSQL.
-2. In the left tree, expand **Servers → PostgreSQL**.
-3. Right-click **Databases → Create → Database…**
-4. In the **Database** field, type `pocket_ledger`, then click **Save**.
-
-**SQL Shell (`psql`, available on Windows, Linux, and macOS):**
-
-1. On Windows, open **SQL Shell (psql)**. On Linux or macOS, open Terminal.
-2. Connect as your PostgreSQL user (commonly `psql -U postgres`) and enter its password when asked.
-3. Type this and press Enter:
-
-   ```sql
-   CREATE DATABASE pocket_ledger;
-   ```
-
-4. You should see `CREATE DATABASE` — the database now exists.
-
-Keep your PostgreSQL user password handy — `DATABASE_URL` needs it.
-
-Before starting the website on any operating system:
-
-1. Start PostgreSQL itself. On Linux this is normally its system service; on macOS it may be a
-   Homebrew service or Postgres.app. pgAdmin may be closed after the database is created.
-2. Start your container runtime and make sure `docker compose version` works:
+1. Start your container runtime and make sure `docker compose version` works:
    - **Kiri (recommended):** open Kiri and click **Start** for the Linux VM (when the VM is Off,
      Compose cannot start). First launch creates a `kiri` Docker context.
    - **Docker Desktop / Docker Engine:** start the engine as usual.
-3. Open a terminal in the project directory and run the launcher shown below for your operating
-   system. It starts both website containers; the steps are otherwise the same on every platform.
+2. Open a terminal in the project directory and run the launcher shown below for your operating
+   system. It starts the database and both website containers.
 
 ### 1. Clone and configure
 
@@ -149,18 +121,22 @@ git clone https://github.com/DragoonT/note-ledger-DarkCelestial.git
 cd note-ledger-DarkCelestial
 ```
 
-`.env` is **not** committed to the repository. Create it in the project root:
+`.env` is **not** committed to the repository. Create it in the project root (see `.env.example`):
 
 ```env
-DATABASE_URL=postgres://postgres:URL_ENCODED_PASSWORD@host.docker.internal:5432/pocket_ledger
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=change-me
+POSTGRES_DB=pocket_ledger
+DATABASE_URL=postgres://postgres:change-me@db:5432/pocket_ledger
 ADMIN_USERNAME=your_admin_username
 PUBLIC_WEB_URL=http://localhost:3000
 PUBLIC_API_URL=http://localhost:8080
 ```
 
 Notes:
-- Use `host.docker.internal` as the DB host if PostgreSQL runs on your host machine. Compose maps
-  this name correctly on Linux as well as Kiri, Docker Desktop, and Docker Engine on Windows/macOS.
+- Inside Compose, the database host must be the service name `db` (not `localhost` / `host.docker.internal`).
+- If the password contains `@ : / # ?` and similar characters, URL-encode them only in `DATABASE_URL`.
+- Postgres is published on host port **5433** by default (`DB_PORT`) so it does not clash with a local install on 5432.
 - More users can be created later inside the app after signing in as admin.
 
 ### 2. Run with Docker / Kiri (recommended)
@@ -210,6 +186,7 @@ bash ./start.sh --build
 ```
 
 This starts:
+- `db` — PostgreSQL 18 (data in the `postgres_data` Docker volume)
 - `api` — the Rust backend (runs migrations automatically on start)
 - `web` — the Next.js frontend
 
